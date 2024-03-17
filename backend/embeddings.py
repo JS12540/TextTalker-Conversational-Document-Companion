@@ -1,52 +1,70 @@
-import pandas as pd
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
-from langchain import hub
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 from langchain_community.vectorstores import Chroma
-from constants import API_KEY
+from constants import OPENAI_API_KEY
 import os
 
-os.environ["OPENAI_API_KEY"] = API_KEY
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
-llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+class AIAssistant:
+    def __init__(self):
+        self.llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+        self.retriever = None
+        self.model = None
 
-retriever = None
+    def create_embeddings(self, text):
+        """
+        Split text into chunks, generate embeddings, and set up retriever and model for retrieval question answering.
 
-def create_embeddings(text):
-    global retriever, model
+        Parameters:
+            text (str): The input text to generate embeddings from.
 
-    # Split text into chunks
-    text_splitter = CharacterTextSplitter(        
-        separator="\n",
-        chunk_size=1000,
-        chunk_overlap=200,
-        length_function=len,
-    )
-    texts = text_splitter.create_documents([text])
+        Returns:
+            None
+        """
+        # Split text into chunks
+        text_splitter = CharacterTextSplitter(        
+            separator="\n",
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len,
+        )
+        texts = text_splitter.create_documents([text])
 
-    print(f"Text : {texts[0]}")
+        ids = [str(i) for i in range(1, len(texts) + 1)]
 
-    if not texts:
-        raise ValueError("Text chunks are empty")
+        print(f"Text : {texts[0]}")
 
-    # Generate embeddings
-    embeddings = OpenAIEmbeddings(openai_api_key=API_KEY)  # Assuming OPENAI_API_KEY is defined
-    vectorstore = Chroma.from_documents(documents=texts, embedding=embeddings)
+        if not texts:
+            raise ValueError("Text chunks are empty")
 
-    # Retrieve and generate using the relevant snippets
-    retriever = vectorstore.as_retriever(search_type="similarity")
+        # Generate embeddings
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)  # Assuming OPENAI_API_KEY is defined
+        vectorstore = Chroma.from_documents(documents=texts, embedding=embeddings, ids=ids)
 
-    model = RetrievalQA.from_chain_type(
-        llm,
-        retriever=retriever,
-         chain_type="stuff"
+        # Retrieve and generate using the relevant snippets
+        self.retriever = vectorstore.as_retriever(search_type="similarity")
+
+        self.model = RetrievalQA.from_chain_type(
+            self.llm,
+            retriever=self.retriever,
+            chain_type="stuff"
         )
 
-    return retriever
+    def query(self, question: str):
+        """
+        Query the model with a given question and return the response.
 
-def query(question: str):
-    global model
-    response = model.run(question)
-    return response
+        Parameters:
+            question (str): the question to query the model with.
+
+        Returns:
+            The response from the model.
+        """
+        if not self.model:
+            raise ValueError("Model not initialized. Call create_embeddings() first.")
+        response = self.model.run(question)
+        return response
+    

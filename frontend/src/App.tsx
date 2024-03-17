@@ -1,5 +1,6 @@
 import React, { useState, ChangeEvent } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./App.css";
 
 export default function App() {
   const [result, setResult] = useState<string>("");
@@ -7,6 +8,7 @@ export default function App() {
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const [showUploadSuccessModal, setShowUploadSuccessModal] = useState<boolean>(false);
+  const [fileUploadResult, setFileUploadResult] = useState<string>("");
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -21,11 +23,13 @@ export default function App() {
     formData.append("file", file);
 
     try {
-      await fetch("http://localhost:8000/upload", {
+      const response = await fetch("http://localhost:8000/upload", {
         method: "POST",
         body: formData,
       });
+      const data = await response.json();
       setUploadSuccess(true); // File uploaded successfully
+      setFileUploadResult(data.result); // File uploaded successfully
       setShowUploadSuccessModal(true); // Show upload success modal
     } catch (error) {
       console.error("Error", error);
@@ -82,7 +86,7 @@ export default function App() {
                 />
                 <br />
                 <button className="predictBtn btn btn-success" onClick={handlePredict}>
-                  Submit
+                  Ask
                 </button>
               </>
             )}
@@ -102,7 +106,7 @@ export default function App() {
               </button>
             </div>
             <div className="modal-body">
-              <p>The file has been uploaded successfully.</p>
+            <p>{fileUploadResult}</p>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-primary" onClick={() => setShowUploadSuccessModal(false)}>

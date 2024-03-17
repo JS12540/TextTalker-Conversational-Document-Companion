@@ -8,6 +8,15 @@ import io
 from io import StringIO
 
 def process_text_file(file: UploadFile) -> str:
+    """
+    Process a text file and return its contents as a string.
+
+    Args:
+        file (UploadFile): The text file to be processed.
+
+    Returns:
+        str: The contents of the text file as a string.
+    """
     print("Request received for Text file")
     text = ""
     with StringIO() as buffer:
@@ -20,6 +29,13 @@ def process_text_file(file: UploadFile) -> str:
 
 
 async def process_uploaded_docx(file: UploadFile) -> str:
+    """
+    A function that processes an uploaded docx file by reading its contents, wrapping the bytes in a file-like object, extracting text from paragraphs, and returning the extracted text as a string.
+    Parameters:
+        file (UploadFile): The uploaded docx file to be processed.
+    Returns:
+        str: The extracted text from the docx file.
+    """
     print("Request received for Docx file")
     
     # Read the contents of the uploaded file
@@ -42,6 +58,15 @@ async def process_uploaded_docx(file: UploadFile) -> str:
 
 
 async def process_pdf_file(file: UploadFile) -> str:
+    """
+    A function that processes a PDF file uploaded through the API.
+
+    Parameters:
+    - file (UploadFile): The PDF file to be processed.
+
+    Returns:
+    - str: The extracted text content from the PDF file.
+    """
     try:
         print("Request received for PDF file")
         pdf_bytes = await file.read()
@@ -56,6 +81,15 @@ async def process_pdf_file(file: UploadFile) -> str:
         raise HTTPException(status_code=500, detail="Error processing PDF file: " + str(e))
 
 def process_csv_file(file: UploadFile) -> str:
+    """
+    A function that processes a CSV file, converting it to a string and returning the result.
+
+    Parameters:
+    file (UploadFile): The CSV file to be processed.
+
+    Returns:
+    str: The contents of the CSV file as a string.
+    """
     print("Request received for CSV file")
     df = pd.read_csv(file.file)
     text = df.to_string()

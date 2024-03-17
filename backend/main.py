@@ -1,17 +1,15 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any
 import os
 import pymongo
+import traceback
+from embeddings import AIAssistant  # Assuming AIAssistant class is imported correctly
 import services
 import constants
-import traceback
-import embeddings
-import os
-import constants
 
-os.environ["OPENAI_API_KEY"] = constants.API_KEY
+os.environ["OPENAI_API_KEY"] = constants.OPENAI_API_KEY
 
 origins = [
     "http://localhost",
@@ -35,14 +33,19 @@ if not MONGO_URI:
 mongo_client = pymongo.MongoClient(MONGO_URI)
 db = mongo_client["file_storage"]
 
-# ML Model (dummy for demonstration)
-def predict(text: str) -> str:
-    # Implement your machine learning model logic here
-    return "dummy prediction"
-
+ai_assistant = None
 
 
 async def process_uploaded_file(file: UploadFile) -> str:
+    """
+    A function that processes an uploaded file based on its extension.
+    
+    Parameters:
+    - file: UploadFile - the file to be processed
+    
+    Returns:
+    - str: the processed text content of the file
+    """
     extension = os.path.splitext(file.filename)[1].lower()
 
     try:
@@ -66,27 +69,52 @@ async def process_uploaded_file(file: UploadFile) -> str:
 
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)) -> Any:
+async def upload_file(file: UploadFile = File(...)) -> Any: 
+    """
+    Uploads a file to the server and processes it.
+
+    Parameters:
+        file (UploadFile): The file to be uploaded.
+
+    Returns:
+        Any: The result of the file upload operation.
+    """
+    extension = os.path.splitext(file.filename)[1].lower()
+
+    if extension not in [".txt", ".docx", ".pdf", ".csv"]:
+        return {"result": "Unsupported file format."}
     # Save the file to MongoDB
-
+    global ai_assistant
+    ai_assistant = None
     collection = db["files"]
-
+    ai_assistant = AIAssistant()
     existing_file = collection.find_one({"filename": file.filename})
     if existing_file:
-        return {"result": "File already exists."}
-
-    inserted_file = collection.insert_one({"filename": file.filename, "filetype": file.content_type})
+        text = existing_file['text']
+        ai_assistant.create_embeddings(text)
+        return {"result": "File already exists. Processing the existing file."}
 
     text = await process_uploaded_file(file)
 
-    model = embeddings.create_embeddings(text)
+    inserted_file = collection.insert_one({"filename": file.filename, "filetype": file.content_type, "text": text})
+
+    ai_assistant.create_embeddings(text)
 
     return {"result": "File uploaded successfully."}
 
 
 @app.post("/predict")
 async def query_file(query: str):
+    """
+    Perform a prediction based on the provided query using the AI assistant.
 
-    result = embeddings.query(query)
+    Parameters:
+    - query (str): The query string to be used for prediction.
+
+    Returns:
+    - dict: A dictionary containing the result of the prediction.
+    """
+    global ai_assistant
+    result = ai_assistant.query(query)
 
     return {"result": result}
