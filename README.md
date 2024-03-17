@@ -69,3 +69,8 @@ The page will reload if you make edits. You will also see any lint errors in the
 3. We will check your assignment by doing a full run of your app with all possible edge cases and see how the results look. Please ensure the program is in a finished state so that we can execute even though you might not have
    completed it in full.
 4. Finally, be sure to provide a `README` document detailing your approach to completing the assignment, including the decisions you took and the reasons behind them.
+
+## Loom Video Link
+
+[Link to Loom video](https://www.loom.com/share/15ef1d84ce7746a9a8967f0d23e19503?sid=541736e9-1cc8-4027-b26e-145a32df6dc4)
+
